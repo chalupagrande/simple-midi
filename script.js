@@ -2,29 +2,56 @@ var keyCodes = [113,119,101,114,116,121,117,105,111,112,97,115,100,102,103,104,1
 var keys = ["q","w","e","r","t","y","u","i","o","p","a","s","d","f","g","h","j","k","l","z","x","c","v","b","n","m"]
 
 
-var soundsLinks = []
+var soundLinks = []
 var sounds = []
-var wrap = $('.wrapper')
+var wrap = document.querySelector('.wrapper')
 ready(function(){
   getSounds(function(){
-    soundsLinks.forEach(function(el, i){
+    soundLinks.forEach(function(el, i){
       var s = new Audio(el)
       sounds.push(s)
 
-      var btn = $('<button/>').text(el.replace('/sounds/','')).on('click', function(event){
-
+      var btn = document.createElement('button')
+      btn.innerText = el.replace('/sounds/','')
+      btn.addEventListener('click', function(){
         event.preventDefault()
         s.pause()
         s.currentTime = 0
         s.play()
+
       })
-      wrap.append(btn)
+
+      wrap.appendChild(btn)
     })
     paintTheRainbow('button')
     addKeyListeners('button')
   })
 })
 
+function getSounds(cb){
+  var request = new XMLHttpRequest();
+  request.open('GET', 'sounds/', true);
+  request.setRequestHeader('Access-Control-Allow-Origin','http://localhost:8080')
+
+  request.onload = (function(cb) {
+    if (request.status >= 200 && request.status < 400) {
+      var resp = request.responseText;
+      var s = resp.match(/(\/sounds\/[A-Za-z0-9_ -]+(?=\.mp3|\.wav)\.(mp3|wav))/g)
+      soundLinks = s
+      cb()
+    } else {
+      // We reached our target server, but it returned an error
+      console.log('something went wrong')
+    }
+  }).bind(null, cb)
+
+  request.onerror = function() {
+    // There was a connection error of some sort
+    console.log('error')
+  };
+
+  request.send();
+}
 function addKeyListeners(selector){
   var els = document.querySelectorAll(selector)
   els = Array.prototype.slice.call(els)
@@ -41,7 +68,7 @@ function addKeyListeners(selector){
   keyCodes = keyCodes.slice(0, els.length)
   document.onkeypress = function(event){
     var index = keyCodes.indexOf(event.keyCode)
-    if( event.keyCode == 32){
+    if( event.keyCode == 46){
       sounds.forEach(function(sound){
         sound.pause()
         sound.currentTime = 0
@@ -127,16 +154,4 @@ function fireEvent(node, eventName) {
         event.synthetic = true;
         node.fireEvent("on" + eventName, event);
     }
-}
-
-function getSounds(cb){
-  $.ajax({
-  url: "sounds/",
-  success: function(data){
-     $(data).find("a:contains(.mp3)").each(function(){
-       soundsLinks.push($(this).attr('href'))
-     });
-     cb()
-    }
-  });
 }
